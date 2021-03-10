@@ -14,6 +14,7 @@ import re
 import json
 
 from bs4 import BeautifulSoup
+from dateutil.parser import parse
 from typing import *
 
 
@@ -220,7 +221,8 @@ class ParseDriver:
 
         print(f'download ==> {gwanbo.date}/{gwanbo.category["name"]}/{gwanbo.title}')
         try:
-            directory = os.path.join('data', gwanbo.date, gwanbo.category['name'])
+            dt = parse(gwanbo.date)
+            directory = os.path.join('data', str(dt.year), str(dt.month), str(dt.day), gwanbo.category['name'])
             if not (os.path.isdir(directory)):
                 os.makedirs(directory)
             file = os.path.join(directory, f'{gwanbo.title.replace("/", "_")}.pdf')
