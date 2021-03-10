@@ -218,7 +218,7 @@ class ParseDriver:
               f'?contentId=0000000000000000{gwanbo.id}:0000000000000000{gwanbo.category["id"]}:N:&reqType=docData'
         response = requests.get(uri)
 
-        print(f'download ==> {gwanbo.category["name"]}/{gwanbo.title}')
+        print(f'download ==> {gwanbo.date}/{gwanbo.category["name"]}/{gwanbo.title}')
         try:
             directory = os.path.join('data', gwanbo.date, gwanbo.category['name'])
             if not (os.path.isdir(directory)):
