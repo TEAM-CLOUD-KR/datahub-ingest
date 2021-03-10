@@ -6,5 +6,5 @@
     http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
     
     Contributors:
-        Aaron(JIN, Taeyang) - Create Main Application Class
+        Aaron(JIN, Taeyang) - Create Main Application 
 """
