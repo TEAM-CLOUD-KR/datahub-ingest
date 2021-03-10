@@ -12,21 +12,28 @@ from crawler.newsdata import parsedriver as NewsDataParser
 from crawler.opendata import parsedriver as OpenDataParser
 from crawler.gwanbo import parsedriver as GwanboDriver
 
+from multiprocessing import Pool
+
 import datetime
 
 if __name__ == '__main__':
     gwanbo_parser = GwanboDriver.ParseDriver()
 
-    start_date = datetime.date(2001, 1, 2)
+    start_date = datetime.date(2001, 1, 2)  # first: 20010102
     end_date = datetime.date(2021, 3, 10)
     date_gap = end_date - start_date
-    print(date_gap.days)
 
-    for i in range(date_gap.days+1):
-        curr_date = start_date + datetime.timedelta(i)
-        print(curr_date)
-    #     print(item)
+    result = []
 
-    # result = gwanbo_parser.getListByDate('20010102')
-    # result = gwanbo_parser.download_multiple_gwanbo(result)
-    # print(result)
+    dates = [str(start_date + datetime.timedelta(x)).replace('-', '')
+             for x in range(1, date_gap.days + 1)]
+
+    processing_unit = 20
+    pool = Pool(processes=processing_unit)
+
+    # for date in dates:
+    #     gwanbo_parser.get_list_by_date(date)
+    #
+    gwanbo_list = pool.map(gwanbo_parser.get_list_by_date, dates)
+    print(len(gwanbo_list))
+    pool.map(gwanbo_parser.download_multiple_gwanbo, gwanbo_list)
