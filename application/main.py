@@ -6,5 +6,13 @@
     http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
     
     Contributors:
-        Aaron(JIN, Taeyang) - Create Main Application 
+        Aaron(JIN, Taeyang) - Create Main Application
 """
+from crawler.newsdata import parsedriver as NewsDataParser
+from crawler.opendata import parsedriver as OpenDataParser
+
+if __name__ == '__main__':
+    news_data_parser = NewsDataParser.ParseDriver()
+    open_data_parser = OpenDataParser.ParseDriver()
+    print(news_data_parser.agent)
+    print(open_data_parser.agent)

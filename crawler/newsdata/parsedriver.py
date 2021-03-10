@@ -6,5 +6,10 @@
     http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
     
     Contributors:
-        Aaron(JIN, Taeyang) - Create Crawler Wrapper Class
+        Aaron(JIN, Taeyang) - Create newsdata/parsedriver
 """
+
+
+class ParseDriver:
+    def __init__(self):
+        self.agent = 'NewsData'
