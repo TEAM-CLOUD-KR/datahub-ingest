@@ -4,7 +4,7 @@
     are made available under the terms of the GNU Lesser General Public License v2.1
     which accompanies this distribution, and is available at
     https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
-    
+
     Contributors:
         Aaron(JIN, Taeyang) - Create gwanbo/parsedriver
 """
@@ -19,21 +19,20 @@ from typing import *
 
 
 class GwanboDict:
-    def normalize(self, text):
-        return text.strip('() ').replace('<', '(').replace('>', ')')
 
-    def __init__(self, category, date: str, publish_id: str, toc_id: str, sequence: str, author: str,
+    def normalize(self, text):
+        return str(text.strip('() ').replace('<', '(').replace('>', ')'))
+
+    def __init__(self, category, created_at: str, publish_id: str, toc_id: str, sequence: str, author: str,
                  title: str):
         self.id = toc_id.replace('0000000000000000', '')
         self.publish = {
             'id': publish_id.replace('0000000000000000', ''),
             'title': self.normalize(title),
-            'date': self.normalize(date)
+            'created_at': self.normalize(created_at),
+            'sequence': sequence,
+            'author': self.normalize(author)
         }
-        if sequence != '':
-            self.publish['sequence'] = sequence
-        if author != '':
-            self.publish['author'] = self.normalize(author)
         self.category = {
             'name': category['name'].replace('0000000000000000', ''),
             'id': category['id'].replace('0000000000000000', '')
@@ -65,7 +64,8 @@ class ParseDriver:
             '부령': {
                 'id': '1316064775344000',
                 'regex': [
-                    r'(?P<AUTHOR>.*)령? ?제?제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
+                    r'(?P<AUTHOR>.*)부령? ?제?제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
+                    r'(?P<AUTHOR>.*)령 ?제 ?(?P<SEQUENCE>[\d-]+)호(?P<TITLE>.*)',
                     r'법률제?(?P<SEQUENCE>[\d]+)호(?P<TITLE>.*)'
                 ]
             },
@@ -76,13 +76,16 @@ class ParseDriver:
             '고시': {
                 'id': '1316064812423000',
                 'regex': [
-                    r'(?P<AUTHOR>.*)(시|고시|공고)?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
+                    r'(?P<AUTHOR>.*)(고시|공고)제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
                     r'(?P<AUTHOR>.*)(?P<TITLE>.*)'
                 ]
             },
             '공고': {
                 'id': '1316064941384000',
-                'regex': r'(?P<AUTHOR>[가-힣]+)(공고)?제?제? ?(?P<SEQUENCE>[\w\d-]+)호?(?P<TITLE>.*)'
+                'regex': [
+                    r'(?P<AUTHOR>.*)?(고시|공고|고고)제?제? ?(?P<SEQUENCE>[농|\W\d-]+)호?(?P<TITLE>.*)',
+                    r'(?P<AUTHOR>.*)?제(?P<SEQUENCE>[농|\W\d-]+)호?(?P<TITLE>.*)'
+                ]
             },
             '국회': {
                 'id': '1316064771554000',
@@ -91,7 +94,7 @@ class ParseDriver:
             '법원': {
                 'id': '1316064780807000', 'regex': [
                     r'(?P<AUTHOR>.*)제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
-                    r'(?P<TITLE>.*)(?P<AUTHOR>.*)'
+                    r'(?P<TITLE>.*)(?P<AUTHOR>[가-힣]+)'
                 ]
             },
             '헌법재판소': {
@@ -102,7 +105,7 @@ class ParseDriver:
                 'id': '1316644783234000',
                 'regex': [
                     r'중앙선거관리위원회(규칙|공고|고시)? ?제?제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
-                    r'중앙선거관리위원회(?P<AUTHOR>.*)(규칙|공고)제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
+                    r'중앙선거관리위원회(?P<AUTHOR>[가-힣]+)(규칙|공고)제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
                     r'(?P<AUTHOR>.*)선거관리위(윈|원)회(규칙|공고|고시)제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
                     r'(?P<AUTHOR>.*)(공고|고시)제?제?(?P<SEQUENCE>[\d-]+)호(?P<TITLE>.*)'
                 ]
@@ -116,21 +119,24 @@ class ParseDriver:
             },
             '지방자치단체': {
                 'id': '1316064818185000',
-                'regex': r'(?P<AUTHOR>.*)(공고|고시)? ?제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
+                'regex': r'(?P<AUTHOR>.*)?(공고|고시)? ?제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
             },
             '인사': {
                 'id': '1316064854672000', 'regex': [
-                    r'(?P<TITLE>.*)(?P<AUTHOR>.*)',
+                    r'(?P<TITLE>.*)(?P<AUTHOR>[가-힣]+)',
                     r'(?P<TITLE>.*)'
                 ]
             },
             '상훈': {
-                'id': '1327535627196000', 'regex': r'(?P<TITLE>.*)(?P<AUTHOR>.*)'
+                'id': '1327535627196000', 'regex': [
+                    r'(?P<TITLE>.*)\((?P<AUTHOR>.*)\)',
+                    r'(?P<TITLE>서훈)(?P<AUTHOR>.*)'
+                ]
             },
             '기타': {
                 'id': '1316064859031000',
                 'regex': [
-                    r'(?P<TITLE>.*)(?P<AUTHOR>.*)',
+                    r'(?P<TITLE>.*)(?P<AUTHOR>[가-힣]+)',
                     r'(?P<TITLE>.*)'
                 ]
             },
@@ -197,6 +203,7 @@ class ParseDriver:
 
                 item_title = item_details.group('TITLE')
 
+                # print(json.dumps(item_details.groupdict(), ensure_ascii=False, indent=4))
                 try:
                     item_sequence = item_details.group('SEQUENCE')
                 except IndexError as e:
@@ -223,9 +230,9 @@ class ParseDriver:
               f'?contentId=0000000000000000{gwanbo.publish["id"]}:0000000000000000{gwanbo.id}:N:&reqType=docData'
         response = requests.get(uri)
 
-        print(f'download ==> {gwanbo.publish["date"]}/{gwanbo.category["name"]}/{gwanbo.publish["title"]}')
+        print(f'download ==> {gwanbo.publish["created_at"]}/{gwanbo.category["name"]}/{gwanbo.publish["title"]}')
         try:
-            dt = parse(gwanbo.publish["date"])
+            dt = parse(gwanbo.publish["created_at"])
             directory = os.path.join('data', str(dt.year), str(dt.month), str(dt.day))
             if not (os.path.isdir(directory)):
                 os.makedirs(directory)
