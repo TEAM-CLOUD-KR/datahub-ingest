@@ -18,6 +18,7 @@ from multiprocessing import Pool
 import datetime
 import json
 import os
+import boto3
 
 if __name__ == '__main__':
     gwanbo_parser = GwanboDriver.ParseDriver()
@@ -32,6 +33,21 @@ if __name__ == '__main__':
              for x in range(1, date_gap.days + 1)]
 
     # dates = ['20210310', '20210311']
+
+    s3 = boto3.client(
+        's3',
+        aws_access_key_id='',
+        aws_secret_access_key=''
+    )
+
+    f_ = os.path.join('data', '2001', '1', '3', '1319593778460000.pdf')
+    bucket = 'data-portal-cdn'
+    key = 'gwanbo/pdf/2001/1/3/1319593778460000.pdf'
+
+    res = s3.upload_file(f_, bucket, key)
+    print(res)
+
+    exit()
 
     processing_unit = 20
     pool = Pool(processes=processing_unit)
@@ -48,4 +64,3 @@ if __name__ == '__main__':
 
     result = pool.map(gwanbo_parser.download_multiple_gwanbo, gwanbo_list)
     print(result)
-
