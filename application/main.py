@@ -28,6 +28,8 @@ if __name__ == '__main__':
     dates = [str(start_date + datetime.timedelta(x)).replace('-', '')
              for x in range(1, date_gap.days + 1)]
 
+    dates = ['20210311']
+
     processing_unit = 20
     pool = Pool(processes=processing_unit)
 
