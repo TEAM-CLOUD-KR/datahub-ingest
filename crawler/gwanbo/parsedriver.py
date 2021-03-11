@@ -22,17 +22,21 @@ class GwanboDict:
     def normalize(self, text):
         return text.strip('() ').replace('<', '(').replace('>', ')')
 
-    def __init__(self, category: str, date: str, content_id: str, toc_id: str, sequence: str, author: str, title: str):
-        self.title = self.normalize(title)
+    def __init__(self, category, date: str, publish_id: str, toc_id: str, sequence: str, author: str,
+                 title: str):
+        self.id = toc_id.replace('0000000000000000', '')
+        self.publish = {
+            'id': publish_id.replace('0000000000000000', ''),
+            'title': self.normalize(title),
+            'date': self.normalize(date)
+        }
         if sequence != '':
-            self.sequence = sequence
+            self.publish['sequence'] = sequence
         if author != '':
-            self.author = self.normalize(author)
-        self.date = date
-        self.id = content_id.replace('0000000000000000', '')
+            self.publish['author'] = self.normalize(author)
         self.category = {
-            'name': category,
-            'id': toc_id.replace('0000000000000000', '')
+            'name': category['name'].replace('0000000000000000', ''),
+            'id': category['id'].replace('0000000000000000', '')
         }
 
     def __str__(self):
@@ -170,7 +174,7 @@ class ParseDriver:
             elif item.name == 'ul':
                 href = item.find('a')['href']
                 regex = re.compile(
-                    r"javascript:fncViewToc\('(?P<CONTENT_ID>[\d]*)', '(?P<TOC_ID>[\d]*)', '(?P<FULL_TITLE>.*)'\)"
+                    r"javascript:fncViewToc\('(?P<PUBLISH_ID>[\d]*)', '(?P<TOC_ID>[\d]*)', '(?P<FULL_TITLE>.*)'\)"
                 )
                 item = regex.search(href)
 
@@ -188,7 +192,7 @@ class ParseDriver:
                     print(href)
                     print(item['FULL_TITLE'])
 
-                item_content_id = item.group('CONTENT_ID')
+                item_publish_id = item.group('PUBLISH_ID')
                 item_toc_id = item.group('TOC_ID')
 
                 item_title = item_details.group('TITLE')
@@ -206,9 +210,9 @@ class ParseDriver:
 
                 gwanbo_list.append(
                     GwanboDict(
-                        current_category, date,
-                        item_content_id, item_toc_id, item_sequence,
-                        item_author, item_title
+                        {'name': current_category, 'id': self.categories[current_category]['id']},
+                        date, item_publish_id, item_toc_id,
+                        item_sequence, item_author, item_title
                     )
                 )
 
@@ -216,16 +220,16 @@ class ParseDriver:
 
     def download_single_gwanbo(self, gwanbo: GwanboDict) -> bool:
         uri = 'https://gwanbo.mois.go.kr/ezpdfwebviewer/viewer.jsp' \
-              f'?contentId=0000000000000000{gwanbo.id}:0000000000000000{gwanbo.category["id"]}:N:&reqType=docData'
+              f'?contentId=0000000000000000{gwanbo.publish["id"]}:0000000000000000{gwanbo.id}:N:&reqType=docData'
         response = requests.get(uri)
 
-        print(f'download ==> {gwanbo.date}/{gwanbo.category["name"]}/{gwanbo.title}')
+        print(f'download ==> {gwanbo.publish["date"]}/{gwanbo.category["name"]}/{gwanbo.publish["title"]}')
         try:
-            dt = parse(gwanbo.date)
-            directory = os.path.join('data', str(dt.year), str(dt.month), str(dt.day), gwanbo.category['name'])
+            dt = parse(gwanbo.publish["date"])
+            directory = os.path.join('data', str(dt.year), str(dt.month), str(dt.day))
             if not (os.path.isdir(directory)):
                 os.makedirs(directory)
-            file = os.path.join(directory, f'{gwanbo.title.replace("/", "_")}.pdf')
+            file = os.path.join(directory, f'{gwanbo.id}.pdf')
             open(file, 'wb').write(response.content)
         except IOError as e:
             print(e)
