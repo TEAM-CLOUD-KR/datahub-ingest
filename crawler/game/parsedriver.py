@@ -12,4 +12,4 @@
 
 class ParseDriver:
     def __init__(self):
-        self.agent = 'Game'
+        self.agent = 'game'
