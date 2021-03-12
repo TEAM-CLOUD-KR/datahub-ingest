@@ -18,14 +18,30 @@ from typing import *
 
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+from dateutil.parser import parse
 
 
 class GwanboDict:
 
-    def normalize(self, text):
+    def normalize(self, text: str):
+        if not text:
+            return ''
+
+        _text = text.strip()
+        if _text[0] == '(' and _text[-1] == ')':
+            _text.strip('()')
+
+        if _text[0] == '(':
+            _text.lstrip('(')
+
+        if _text[-1] == ')':
+            _text.rstrip(')')
+
         return str(text.strip('() ').replace('<', '(').replace('>', ')'))
 
-    def __init__(self, category, created_at: str, publish_id: str, toc_id: str, sequence: str, author: str,
+    def __init__(self, agent: str, category: Dict[str, str], created_at: str, publish_id: str, toc_id: str,
+                 sequence: str,
+                 author: str,
                  title: str):
         self.id = toc_id.replace('0000000000000000', '')
         self.publish = {
@@ -40,88 +56,100 @@ class GwanboDict:
             'id': category['id'].replace('0000000000000000', '')
         }
 
+        dt = parse(self.publish["created_at"])
+        _cdn_prefix = f'https://cdn.dataportal.kr/data/{agent}/{dt.year}/{dt.month}/{dt.day}/'
+        self.binary = f'{_cdn_prefix}{self.id}.pdf'
+
     def __str__(self):
         return json.dumps(vars(self), ensure_ascii=False)
 
 
 class ParseDriver:
     def __init__(self):
-        self.agent = 'Gwanbo'
+        self.agent = 'gwanbo'
+        self.regex = [
+            r'(?P<AUTHOR>.[^고시^공고^고고^규칙^공시^제]*)?(고시|공고|고고|규칙|공시)? ?제?제 ?'
+            r'(?P<SEQUENCE>.[^호^(^)]*)?호?\(?(?P<TITLE>.[^(^)]*)\)?',
+            r'(?P<TITLE>.[^()]*)\((?P<AUTHOR>.[^(^)]*)',
+            r'(?P<TITLE>.*)'
+        ]
+        """
+        Categories Legacy
         self.categories = {
             '헌법': {
-                'id': '1316064941384000', 'regex': r'헌법제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
+                'id': '1316064941384000', 'regex': r'헌법 ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
             },
             '법률': {
-                'id': '1316064739911000', 'regex': r'(법률)? ?제?제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
+                'id': '1316064739911000', 'regex': r'(법률)? ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
             },
             '조약': {
-                'id': '1316064759392000', 'regex': r'(?P<AUTHOR>.*)조약 ?제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
+                'id': '1316064759392000', 'regex': r'(?P<AUTHOR>.*)조약 ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
             },
             '대통령령': {
-                'id': '1316064763503000', 'regex': r'(대통령)?령? ?제?제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
+                'id': '1316064763503000', 'regex': r'(대통령)?령? ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
             },
             '총리령': {
-                'id': '1316064767682000', 'regex': r'총리(령|훈령)? ?제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
+                'id': '1316064767682000', 'regex': r'총리(령|훈령)? ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
             },
             '부령': {
                 'id': '1316064775344000',
                 'regex': [
-                    r'(?P<AUTHOR>.*)부령? ?제?제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
+                    r'(?P<AUTHOR>.*)부령? ?제? ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
                     r'(?P<AUTHOR>.*)령 ?제 ?(?P<SEQUENCE>[\d-]+)호(?P<TITLE>.*)',
-                    r'법률제?(?P<SEQUENCE>[\d]+)호(?P<TITLE>.*)'
+                    r'법률 ?제?제? ?(?P<SEQUENCE>[\d-]+)호(?P<TITLE>.*)'
                 ]
             },
             '훈령': {
                 'id': '1510711052397000',
-                'regex': r'(?P<AUTHOR>.*)(훈령)? ?제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
+                'regex': r'(?P<AUTHOR>.*)(훈령)? ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
             },
             '고시': {
                 'id': '1316064812423000',
                 'regex': [
-                    r'(?P<AUTHOR>.*)(고시|공고)제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
+                    r'(?P<AUTHOR>.*)(고시|공고) ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
                     r'(?P<AUTHOR>.*)(?P<TITLE>.*)'
                 ]
             },
             '공고': {
                 'id': '1316064941384000',
                 'regex': [
-                    r'(?P<AUTHOR>.*)?(고시|공고|고고)제?제? ?(?P<SEQUENCE>[농|\W\d-]+)호?(?P<TITLE>.*)',
+                    r'(?P<AUTHOR>.*)?(고시|공고|고고) ?제?제? ?(?P<SEQUENCE>[가-힣\d-]+)호?(?P<TITLE>.*)',
                     r'(?P<AUTHOR>.*)?제(?P<SEQUENCE>[농|\W\d-]+)호?(?P<TITLE>.*)'
                 ]
             },
             '국회': {
                 'id': '1316064771554000',
-                'regex': r'(?P<AUTHOR>.*)(규칙|공고)제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
+                'regex': r'(?P<AUTHOR>.*)(규칙|공고) ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
             },
             '법원': {
                 'id': '1316064780807000', 'regex': [
-                    r'(?P<AUTHOR>.*)제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
+                    r'(?P<AUTHOR>.*) ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
                     r'(?P<TITLE>.*)(?P<AUTHOR>[가-힣]+)'
                 ]
             },
             '헌법재판소': {
                 'id': '1316064801736000',
-                'regex': r'(헌법재판소)?(규칙|공시|공고|고시|공)? ?제?제?(?P<SEQUENCE>[\d-]+)?호?(?P<TITLE>.*)'
+                'regex': r'(헌법재판소)?(규칙|공시|공고|고시|공)? ?제?제? ?(?P<SEQUENCE>[\d-]+)?호?(?P<TITLE>.*)'
             },
             '선거관리위원회': {
                 'id': '1316644783234000',
                 'regex': [
-                    r'중앙선거관리위원회(규칙|공고|고시)? ?제?제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
-                    r'중앙선거관리위원회(?P<AUTHOR>[가-힣]+)(규칙|공고)제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
-                    r'(?P<AUTHOR>.*)선거관리위(윈|원)회(규칙|공고|고시)제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
-                    r'(?P<AUTHOR>.*)(공고|고시)제?제?(?P<SEQUENCE>[\d-]+)호(?P<TITLE>.*)'
+                    r'중앙선거관리위원회(규칙|공고|고시)? ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
+                    r'중앙선거관리위원회(?P<AUTHOR>[가-힣]+)(규칙|공고) ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
+                    r'(?P<AUTHOR>.*)선거관리위(윈|원)회(규칙|공고|고시) ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
+                    r'(?P<AUTHOR>.*)(공고|고시) ?제?제? ?(?P<SEQUENCE>[\d-]+)호(?P<TITLE>.*)'
                 ]
             },
             '감사원': {
-                'id': '1316064936481000', 'regex': r'감사원(규칙|공고)제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
+                'id': '1316064936481000', 'regex': r'감사원(규칙|공고) ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
             },
             '국가인권위원회': {
                 'id': '1321519597927000',
-                'regex': r'국가인권위원회(규칙|공고)제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
+                'regex': r'국가인권위원회(규칙|공고) ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
             },
             '지방자치단체': {
                 'id': '1316064818185000',
-                'regex': r'(?P<AUTHOR>.*)?(공고|고시)? ?제?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
+                'regex': r'(?P<AUTHOR>.*)?(공고|고시)? ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
             },
             '인사': {
                 'id': '1316064854672000', 'regex': [
@@ -138,55 +166,58 @@ class ParseDriver:
             '기타': {
                 'id': '1316064859031000',
                 'regex': [
+                    r'(?P<AUTHOR>.*)공고 ?제?제? ?(?P<SEQUENCE>[\d-]+)호(?P<TITLE>.*)',
                     r'(?P<TITLE>.*)(?P<AUTHOR>[가-힣]+)',
                     r'(?P<TITLE>.*)'
                 ]
             },
             '대통령지시사항': {
                 'id': '1615189864687000', 'regex': [
-                    r'대통령지시사항(?P<TITLE>.*)',
-                    r'지시사항(?P<TITLE>.*)',
+                    r'(대통령)?지시사항(?P<TITLE>.*)',
                     r'(?P<TITLE>.*)'
                 ]
             }
         }
-
-    def parse_gwanbo_title(self, title: str, category: str) -> Dict[str, str]:
+        """
+    def parse_gwanbo_title(self, title: str) -> Dict[str, str]:
         regex = re.compile(
             r"javascript:fncViewToc\('(?P<PUBLISH_ID>[\d]*)', '(?P<TOC_ID>[\d]*)', '(?P<FULL_TITLE>.*)'\)"
         )
         item = regex.search(title)
 
-        target_regex = self.categories[category]['regex']
         item_details = None
-        if type(target_regex) is list:
-            for reg in target_regex:
-                item_details = re.compile(reg).search(item.group('FULL_TITLE'))
-                if item_details is not None:
-                    break
-        else:
-            item_details = re.compile(target_regex).search(item.group('FULL_TITLE'))
-
-        if item_details is None:
-            print(title)
-            print(item['FULL_TITLE'])
+        for target_regex in self.regex:
+            try:
+                item_details = re.compile(target_regex).search(item.group('FULL_TITLE'))
+            except Exception as e:
+                print(e)
+                print(item.group('FULL_TITLE'))
+                print(target_regex)
+            if item_details is not None and \
+                    'TITLE' not in item_details.groups():
+                break
 
         item_publish_id = item.group('PUBLISH_ID')
         item_toc_id = item.group('TOC_ID')
 
-        item_title = item_details.group('TITLE')
+        if item_details is None:
+            print('item_details is None' + '::' + title)
 
         # print(json.dumps(item_details.groupdict(), ensure_ascii=False, indent=4))
+        try:
+            item_title = item_details.group('TITLE')
+        except IndexError as e:
+            item_title = ''
+
         try:
             item_sequence = item_details.group('SEQUENCE')
         except IndexError as e:
             item_sequence = ''
-            # print(e, 'SEQUENCE', item_title)
+
         try:
             item_author = item_details.group('AUTHOR')
         except IndexError as e:
             item_author = ''
-            # print(e, 'AUTHOR', item_title)
 
         return {
             'publish_id': item_publish_id,
@@ -232,14 +263,20 @@ class ParseDriver:
             elif item.name == 'ul':
                 href = item.find('a')['href']
 
-                gwanbo = self.parse_gwanbo_title(href, current_category)
-                gwanbo_list.append(
-                    GwanboDict(
-                        {'name': current_category, 'id': self.categories[current_category]['id']},
-                        date, gwanbo['publish_id'], gwanbo['toc_id'],
-                        gwanbo['sequence'], gwanbo['author'], gwanbo['title']
+                gwanbo = self.parse_gwanbo_title(href)
+                try:
+                    gwanbo_list.append(
+                        GwanboDict(
+                            self.agent,
+                            {'name': current_category, 'id': self.categories[current_category]['id']},
+                            date, gwanbo['publish_id'], gwanbo['toc_id'],
+                            gwanbo['sequence'], gwanbo['author'], gwanbo['title']
+                        )
                     )
-                )
+                except Exception as e:
+                    pass
+                    # print('Href Exception', '::', href)
+                    # print(gwanbo)
 
         return gwanbo_list
 

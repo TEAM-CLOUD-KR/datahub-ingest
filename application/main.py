@@ -8,7 +8,7 @@
     Contributors:
         Aaron(JIN, Taeyang) - Create Main Application
 """
-from crawler.newsdata import parsedriver as NewsDataParser
+from crawler.news import parsedriver as NewsDataParser
 from crawler.opendata import parsedriver as OpenDataParser
 from crawler.gwanbo import parsedriver as GwanboDriver
 from crawler.jsonencoder import JsonEncoder
@@ -24,6 +24,25 @@ import os
 
 class Application:
     def __init__(self, parser):
+        config_file = 'datahub-ingest.json'
+        windows_dir = os.path.join('c:\\', 'repository', '_secrets', config_file)
+        linux_dir = os.path.join('home', 'datahub', '_secrets', config_file)
+
+        if os.path.exists(windows_dir):
+            with open(windows_dir, 'r') as f:
+                config = json.load(f)
+
+        if os.path.exists(linux_dir):
+            with open(linux_dir, 'r') as f:
+                config = json.load(f)
+
+        if config is None:
+            print('===== CAN NOT FOUND CONFIG FILE =====')
+            exit()
+
+        self.aws_access_key_id = config['S3']['AWS_ACCESS_KEY_ID']
+        self.aws_secret_access_key = config['S3']['AWS_SECRET_ACCESS_KEY']
+
         self.parser = parser
 
     def download_and_upload_gwanbo(self, gwanbo: GwanboDriver.GwanboDict):
@@ -34,7 +53,7 @@ class Application:
             self.parser.download_single_gwanbo(gwanbo, directory)
 
             source_file = os.path.join(directory, gwanbo.id + '.pdf')
-            client = S3Client.Client('', '')
+            client = S3Client.Client(self.aws_access_key_id, self.aws_secret_access_key)
             res = client.upload_file('data-portal-cdn', source_file, source_file.replace('\\', '/'))
 
             os.remove(source_file)
@@ -46,17 +65,15 @@ if __name__ == '__main__':
     app = Application(GwanboDriver.ParseDriver())
 
     start_date = datetime.date(2001, 1, 2)  # first: 20010102
-    end_date = datetime.date(2001, 12, 31)
+    end_date = datetime.date(2021, 3, 12)
     date_gap = end_date - start_date
-
-    result = []
 
     dates = [str(start_date + datetime.timedelta(x)).replace('-', '')
              for x in range(0, date_gap.days + 1)]
 
     # dates = ['20210311']
 
-    processing_unit = 20
+    processing_unit = 50
     pool = Pool(processes=processing_unit)
 
     gwanbo_list = pool.map(app.parser.get_list_by_date, dates)
@@ -64,12 +81,12 @@ if __name__ == '__main__':
     json_directory = os.path.join('data')
     if not (os.path.isdir(json_directory)):
         os.makedirs(json_directory)
-    file = os.path.join(json_directory, 'data.json')
+    file = os.path.join(json_directory, app.parser.agent, 'data.json')
 
     with open(file, 'w', encoding='utf-8') as json_file:
         json.dump(gwanbo_list, fp=json_file, ensure_ascii=False, cls=JsonEncoder)
 
-    download_list = []
+    download_list = list()
     for gwanbo_item in gwanbo_list:
         for gwanbo in gwanbo_item:
             download_list.append(gwanbo)
