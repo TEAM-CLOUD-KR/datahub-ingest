@@ -30,26 +30,29 @@ class Application:
         dt = parse(gwanbo.publish["created_at"])
         directory = os.path.join('data', self.parser.agent, str(dt.year), str(dt.month), str(dt.day))
 
-        self.parser.download_single_gwanbo(gwanbo, directory)
+        try:
+            self.parser.download_single_gwanbo(gwanbo, directory)
 
-        source_file = os.path.join(directory, gwanbo.id + '.pdf')
-        client = S3Client.Client('', '')
-        client.upload_file('data-portal-cdn', source_file, source_file.replace('\\', '/'))
+            source_file = os.path.join(directory, gwanbo.id + '.pdf')
+            client = S3Client.Client('', '')
+            res = client.upload_file('data-portal-cdn', source_file, source_file.replace('\\', '/'))
 
-        os.remove(source_file)
+            os.remove(source_file)
+        except Exception as e:
+            print(e)
 
 
 if __name__ == '__main__':
     app = Application(GwanboDriver.ParseDriver())
 
     start_date = datetime.date(2001, 1, 2)  # first: 20010102
-    end_date = datetime.date(2021, 3, 11)
+    end_date = datetime.date(2001, 12, 31)
     date_gap = end_date - start_date
 
     result = []
 
     dates = [str(start_date + datetime.timedelta(x)).replace('-', '')
-             for x in range(1, date_gap.days + 1)]
+             for x in range(0, date_gap.days + 1)]
 
     # dates = ['20210311']
 
