@@ -29,20 +29,18 @@ class GwanboDict:
 
         _text = text.strip()
         if _text[0] == '(' and _text[-1] == ')':
-            _text.strip('()')
+            _text = _text.strip('()')
 
-        if _text[0] == '(':
-            _text.lstrip('(')
+        # if _text[0] == '(':
+        #     _text = _text.lstrip('(')
 
         if _text[-1] == ')':
-            _text.rstrip(')')
+            _text = _text.rstrip(')')
 
-        return str(text.strip('() ').replace('<', '(').replace('>', ')'))
+        return _text
 
     def __init__(self, agent: str, category: Dict[str, str], created_at: str, publish_id: str, toc_id: str,
-                 sequence: str,
-                 author: str,
-                 title: str):
+                 sequence: str, author: str, title: str):
         self.id = toc_id.replace('0000000000000000', '')
         self.publish = {
             'id': publish_id.replace('0000000000000000', ''),
@@ -67,14 +65,30 @@ class GwanboDict:
 class ParseDriver:
     def __init__(self):
         self.agent = 'gwanbo'
-        self.regex = [
-            r'(?P<AUTHOR>.[^고시^공고^고고^규칙^공시^제]*)?(고시|공고|고고|규칙|공시)? ?제?제 ?'
-            r'(?P<SEQUENCE>.[^호^(^)]*)?호?\(?(?P<TITLE>.[^(^)]*)\)?',
-            r'(?P<TITLE>.[^()]*)\((?P<AUTHOR>.[^(^)]*)',
-            r'(?P<TITLE>.*)'
+        self.regex_set = [
+            {
+                'valid': ['TITLE', 'AUTHOR'],
+                'regex': r'(?P<AUTHOR>.*(?=고시|공고|고고|규칙|공시|부령|령))?'
+                         r'(고시|공고|고고|규칙|공시|부령|령|)?제?'
+                         r'(?P<SEQUENCE>[\d-]+)호?\(?(?P<TITLE>.*)\)'
+            },
+            {
+                'valid': ['TITLE', 'AUTHOR'],
+                'regex': r'(?P<TITLE>.*)\((?P<AUTHOR>.*)\)',
+            }, {
+                'valid': ['TITLE'],
+                'regex': r'(?P<TITLE>.*)'
+            }
         ]
         """
-        Categories Legacy
+         # {
+            #     'valid': ['TITLE', 'AUTHOR'],
+            #     'regex': r'(?P<AUTHOR>.*(?=고시|공고|고고|공시|부령|제))?'
+            #              r'(고시|공고|고고|규칙|공시|부령)?(제)?'
+            #              r'(?P<SEQUENCE>.*(?=호))?호?\(?(?P<TITLE>.*)'
+            # },
+       
+        """
         self.categories = {
             '헌법': {
                 'id': '1316064941384000', 'regex': r'헌법 ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
@@ -178,46 +192,62 @@ class ParseDriver:
                 ]
             }
         }
-        """
-    def parse_gwanbo_title(self, title: str) -> Dict[str, str]:
-        regex = re.compile(
-            r"javascript:fncViewToc\('(?P<PUBLISH_ID>[\d]*)', '(?P<TOC_ID>[\d]*)', '(?P<FULL_TITLE>.*)'\)"
-        )
-        item = regex.search(title)
 
+    def get_gwanbo_details(self, item):
         item_details = None
-        for target_regex in self.regex:
+        for target in self.regex_set:
             try:
-                item_details = re.compile(target_regex).search(item.group('FULL_TITLE'))
+                item_details = re.compile(target['regex']).search(item.group('FULL_TITLE'))
             except Exception as e:
                 print(e)
-                print(item.group('FULL_TITLE'))
-                print(target_regex)
-            if item_details is not None and \
-                    'TITLE' not in item_details.groups():
-                break
+                # print(e)
+                # print(item.group('FULL_TITLE'))
+                # print(target['regex'])
+
+            _res = list()
+            for v_item in target['valid']:
+                try:
+                    item_details.group(v_item)
+                    _res.append(True)
+                    if len(target['valid']) == _res.count(True):
+                        return item_details
+                except Exception as e:
+                    pass
+
+        return item_details
+
+    def parse_gwanbo_title(self, title: str) -> Dict[str, str]:
+        regex = re.compile(
+            r"javascript:fncViewToc\('(?P<PUBLISH_ID>[\d]*)', '(?P<TOC_ID>[\d]*)', '(?P<FULL_TITLE>.*)'\)")
+
+        item = regex.search(title)
+
+        item_details = self.get_gwanbo_details(item)
 
         item_publish_id = item.group('PUBLISH_ID')
         item_toc_id = item.group('TOC_ID')
 
+        item_author = ''
+        item_sequence = ''
+        item_title = ''
+
         if item_details is None:
-            print('item_details is None' + '::' + title)
+            print('item_details is None' + '::' + item.group('FULL_TITLE'))
+        else:
+            try:
+                item_title = item_details.group('TITLE')
+            except IndexError as e:
+                pass
 
-        # print(json.dumps(item_details.groupdict(), ensure_ascii=False, indent=4))
-        try:
-            item_title = item_details.group('TITLE')
-        except IndexError as e:
-            item_title = ''
+            try:
+                item_sequence = item_details.group('SEQUENCE')
+            except IndexError as e:
+                pass
 
-        try:
-            item_sequence = item_details.group('SEQUENCE')
-        except IndexError as e:
-            item_sequence = ''
-
-        try:
-            item_author = item_details.group('AUTHOR')
-        except IndexError as e:
-            item_author = ''
+            try:
+                item_author = item_details.group('AUTHOR')
+            except IndexError as e:
+                pass
 
         return {
             'publish_id': item_publish_id,
@@ -274,9 +304,8 @@ class ParseDriver:
                         )
                     )
                 except Exception as e:
-                    pass
-                    # print('Href Exception', '::', href)
-                    # print(gwanbo)
+                    print('href error:', href)
+                    print(gwanbo)
 
         return gwanbo_list
 

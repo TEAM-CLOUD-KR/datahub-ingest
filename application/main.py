@@ -64,7 +64,8 @@ class Application:
 if __name__ == '__main__':
     app = Application(GwanboDriver.ParseDriver())
 
-    start_date = datetime.date(2001, 1, 2)  # first: 20010102
+    # start_date = datetime.date(2021, 1, 1)  # first: 20010102
+    start_date = datetime.date(2001, 1, 2)
     end_date = datetime.date(2021, 3, 12)
     date_gap = end_date - start_date
 
@@ -78,10 +79,10 @@ if __name__ == '__main__':
 
     gwanbo_list = pool.map(app.parser.get_list_by_date, dates)
 
-    json_directory = os.path.join('data')
+    json_directory = os.path.join('data', app.parser.agent)
     if not (os.path.isdir(json_directory)):
         os.makedirs(json_directory)
-    file = os.path.join(json_directory, app.parser.agent, 'data.json')
+    file = os.path.join(json_directory, 'data.json')
 
     with open(file, 'w', encoding='utf-8') as json_file:
         json.dump(gwanbo_list, fp=json_file, ensure_ascii=False, cls=JsonEncoder)
