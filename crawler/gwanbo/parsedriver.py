@@ -14,7 +14,6 @@ import re
 import json
 
 from bs4 import BeautifulSoup
-from dateutil.parser import parse
 from typing import *
 
 
@@ -149,6 +148,51 @@ class ParseDriver:
             }
         }
 
+    def parse_gwanbo_title(self, title: str, category: str) -> Dict[str, str]:
+        regex = re.compile(
+            r"javascript:fncViewToc\('(?P<PUBLISH_ID>[\d]*)', '(?P<TOC_ID>[\d]*)', '(?P<FULL_TITLE>.*)'\)"
+        )
+        item = regex.search(title)
+
+        target_regex = self.categories[category]['regex']
+        item_details = None
+        if type(target_regex) is list:
+            for reg in target_regex:
+                item_details = re.compile(reg).search(item.group('FULL_TITLE'))
+                if item_details is not None:
+                    break
+        else:
+            item_details = re.compile(target_regex).search(item.group('FULL_TITLE'))
+
+        if item_details is None:
+            print(title)
+            print(item['FULL_TITLE'])
+
+        item_publish_id = item.group('PUBLISH_ID')
+        item_toc_id = item.group('TOC_ID')
+
+        item_title = item_details.group('TITLE')
+
+        # print(json.dumps(item_details.groupdict(), ensure_ascii=False, indent=4))
+        try:
+            item_sequence = item_details.group('SEQUENCE')
+        except IndexError as e:
+            item_sequence = ''
+            # print(e, 'SEQUENCE', item_title)
+        try:
+            item_author = item_details.group('AUTHOR')
+        except IndexError as e:
+            item_author = ''
+            # print(e, 'AUTHOR', item_title)
+
+        return {
+            'publish_id': item_publish_id,
+            'toc_id': item_toc_id,
+            'sequence': item_sequence,
+            'author': item_author,
+            'title': item_title
+        }
+
     def get_list_by_date(self, date: str) -> List[GwanboDict]:
         print('=====', date, '=====')
 
@@ -179,47 +223,13 @@ class ParseDriver:
                     current_category = '훈령'
             elif item.name == 'ul':
                 href = item.find('a')['href']
-                regex = re.compile(
-                    r"javascript:fncViewToc\('(?P<PUBLISH_ID>[\d]*)', '(?P<TOC_ID>[\d]*)', '(?P<FULL_TITLE>.*)'\)"
-                )
-                item = regex.search(href)
 
-                target_regex = self.categories[current_category]['regex']
-                item_details = None
-                if type(target_regex) is list:
-                    for reg in target_regex:
-                        item_details = re.compile(reg).search(item.group('FULL_TITLE'))
-                        if item_details is not None:
-                            break
-                else:
-                    item_details = re.compile(target_regex).search(item.group('FULL_TITLE'))
-
-                if item_details is None:
-                    print(href)
-                    print(item['FULL_TITLE'])
-
-                item_publish_id = item.group('PUBLISH_ID')
-                item_toc_id = item.group('TOC_ID')
-
-                item_title = item_details.group('TITLE')
-
-                # print(json.dumps(item_details.groupdict(), ensure_ascii=False, indent=4))
-                try:
-                    item_sequence = item_details.group('SEQUENCE')
-                except IndexError as e:
-                    item_sequence = ''
-                    # print(e, 'SEQUENCE', item_title)
-                try:
-                    item_author = item_details.group('AUTHOR')
-                except IndexError as e:
-                    item_author = ''
-                    # print(e, 'AUTHOR', item_title)
-
+                gwanbo = self.parse_gwanbo_title(href, current_category)
                 gwanbo_list.append(
                     GwanboDict(
                         {'name': current_category, 'id': self.categories[current_category]['id']},
-                        date, item_publish_id, item_toc_id,
-                        item_sequence, item_author, item_title
+                        date, gwanbo['publish_id'], gwanbo['toc_id'],
+                        gwanbo['sequence'], gwanbo['author'], gwanbo['title']
                     )
                 )
 
