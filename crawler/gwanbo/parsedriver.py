@@ -16,6 +16,9 @@ import json
 from bs4 import BeautifulSoup
 from typing import *
 
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
+
 
 class GwanboDict:
 
@@ -196,7 +199,12 @@ class ParseDriver:
     def get_list_by_date(self, date: str) -> List[GwanboDict]:
         print('=====', date, '=====')
 
-        uri = 'https://gwanbo.mois.go.kr/user/ebook/ebookDetail.do'
+        session = requests.session()
+        retry = Retry(connect=3, backoff_factor=0.5)
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+        url = 'https://gwanbo.mois.go.kr/user/ebook/ebookDetail.do'
         header = {
 
         }
@@ -205,8 +213,8 @@ class ParseDriver:
             'ebook_gubun': 'GZT001'
         }
 
-        response = requests.post(
-            uri,
+        response = session.post(
+            url,
             headers=header,
             params=request_body
         )
@@ -236,9 +244,15 @@ class ParseDriver:
         return gwanbo_list
 
     def download_single_gwanbo(self, gwanbo: GwanboDict, destination: str) -> bool:
+        session = requests.session()
+        retry = Retry(connect=3, backoff_factor=0.5)
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+
         uri = 'https://gwanbo.mois.go.kr/ezpdfwebviewer/viewer.jsp' \
               f'?contentId=0000000000000000{gwanbo.publish["id"]}:0000000000000000{gwanbo.id}:N:&reqType=docData'
-        response = requests.get(uri)
+        response = session.get(uri)
 
         print(f'download ==> {gwanbo.publish["created_at"]}/{gwanbo.category["name"]}/{gwanbo.publish["title"]}')
         try:
@@ -247,9 +261,8 @@ class ParseDriver:
             file = os.path.join(destination, f'{gwanbo.id}.pdf')
             open(file, 'wb').write(response.content)
         except IOError as e:
-            print(e)
+            print('IOError', e)
             return False
-
         return True
 
     def download_multiple_gwanbo(self, gwanbo: List[GwanboDict], destination: str) -> bool:
