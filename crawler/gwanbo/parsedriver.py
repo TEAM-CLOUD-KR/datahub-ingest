@@ -225,18 +225,16 @@ class ParseDriver:
 
         return gwanbo_list
 
-    def download_single_gwanbo(self, gwanbo: GwanboDict) -> bool:
+    def download_single_gwanbo(self, gwanbo: GwanboDict, destination: str) -> bool:
         uri = 'https://gwanbo.mois.go.kr/ezpdfwebviewer/viewer.jsp' \
               f'?contentId=0000000000000000{gwanbo.publish["id"]}:0000000000000000{gwanbo.id}:N:&reqType=docData'
         response = requests.get(uri)
 
         print(f'download ==> {gwanbo.publish["created_at"]}/{gwanbo.category["name"]}/{gwanbo.publish["title"]}')
         try:
-            dt = parse(gwanbo.publish["created_at"])
-            directory = os.path.join('data', str(dt.year), str(dt.month), str(dt.day))
-            if not (os.path.isdir(directory)):
-                os.makedirs(directory)
-            file = os.path.join(directory, f'{gwanbo.id}.pdf')
+            if not (os.path.isdir(destination)):
+                os.makedirs(destination)
+            file = os.path.join(destination, f'{gwanbo.id}.pdf')
             open(file, 'wb').write(response.content)
         except IOError as e:
             print(e)
@@ -244,9 +242,9 @@ class ParseDriver:
 
         return True
 
-    def download_multiple_gwanbo(self, gwanbo: List[GwanboDict]) -> bool:
+    def download_multiple_gwanbo(self, gwanbo: List[GwanboDict], destination: str) -> bool:
         for one in gwanbo:
-            if not self.download_single_gwanbo(one):
+            if not self.download_single_gwanbo(one, destination):
                 return False
 
         return True
