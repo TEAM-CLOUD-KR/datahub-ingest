@@ -6,10 +6,10 @@
     https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
     
     Contributors:
-        Aaron(JIN, Taeyang) - Create newsdata/parsedriver
+        Aaron(JIN, Taeyang) - Create news/parsedriver
 """
 
 
 class ParseDriver:
     def __init__(self):
-        self.agent = 'NewsData'
+        self.agent = 'news'

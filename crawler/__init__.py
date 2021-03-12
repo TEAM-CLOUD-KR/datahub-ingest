@@ -9,5 +9,5 @@
         Aaron(JIN, Taeyang) - Create Crawler Wrapper Class
 """
 from crawler.opendata import parsedriver as ParseDriver
-from crawler.newsdata import parsedriver as ParseDriver
+from crawler.news import parsedriver as ParseDriver
 from crawler.gwanbo import parsedriver as GwanboDriver
