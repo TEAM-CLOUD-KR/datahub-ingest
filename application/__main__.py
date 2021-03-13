@@ -78,7 +78,7 @@ if __name__ == '__main__':
     now = datetime.datetime.today()
     dates = [str(now.strftime('%Y%m%d'))]
 
-    processing_unit = 50
+    processing_unit = 1
     pool = Pool(processes=processing_unit)
 
     gwanbo_list = pool.map(app.parser.get_list_by_date, dates)
