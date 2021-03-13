@@ -94,7 +94,7 @@ if __name__ == '__main__':
             download_list.append(gwanbo)
 
     result = pool.map(app.download_and_upload_gwanbo, download_list)
-    print('=====================')
+    print('====================')
 
     # INSERT INTO RDS . . .
     # ...
