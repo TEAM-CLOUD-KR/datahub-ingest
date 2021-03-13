@@ -72,7 +72,8 @@ if __name__ == '__main__':
     dates = [str(start_date + datetime.timedelta(x)).replace('-', '')
              for x in range(0, date_gap.days + 1)]
 
-    # dates = ['20210311']
+    now = datetime.datetime.today()
+    dates = [str(now.strftime('%Y%m%d'))]
 
     processing_unit = 50
     pool = Pool(processes=processing_unit)
@@ -93,6 +94,7 @@ if __name__ == '__main__':
             download_list.append(gwanbo)
 
     result = pool.map(app.download_and_upload_gwanbo, download_list)
-    print(result)
-    # result = pool.map(gwanbo_parser.download_multiple_gwanbo, gwanbo_list)
-    # print(result)
+    print('=====================')
+
+    # INSERT INTO RDS . . .
+    # ...
