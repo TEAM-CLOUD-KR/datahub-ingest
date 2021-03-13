@@ -37,7 +37,7 @@ class GwanboDict:
         if _text[-1] == ')':
             _text = _text.rstrip(')')
 
-        return _text
+        return _text.replace('\'', '\\\'')
 
     def __init__(self, agent: str, category: Dict[str, str], created_at: str, publish_id: str, toc_id: str,
                  sequence: str, author: str, title: str):
