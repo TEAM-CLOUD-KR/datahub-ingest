@@ -26,6 +26,7 @@ import json
 
 class Application:
     def __init__(self, parser):
+        config = None
         config_file = 'datahub-ingest.json'
         windows_dir = os.path.join('c:\\', 'repository', '_secrets', config_file)
         linux_dir = os.path.join('home', 'datahub', '_secrets', config_file)
