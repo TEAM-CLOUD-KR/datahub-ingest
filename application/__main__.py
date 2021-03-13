@@ -8,9 +8,9 @@
     Contributors:
         Aaron(JIN, Taeyang) - Create Main Application
 """
-from application.module.crawler.gwanbo import parsedriver as GwanboDriver
-from application.module.crawler.jsonencoder import JsonEncoder
-from application.module.s3client import client as S3Client
+from crawler.gwanbo import parsedriver as GwanboDriver
+from crawler.jsonencoder import JsonEncoder
+from s3client import client as S3Client
 
 from multiprocessing import Pool
 from dateutil.parser import parse
