@@ -133,3 +133,5 @@ dmypy.json
 
 # pdf data directory
 application/data/
+
+crawl_log
