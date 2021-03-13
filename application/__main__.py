@@ -8,6 +8,11 @@
     Contributors:
         Aaron(JIN, Taeyang) - Create Main Application
 """
+import os
+import sys
+
+sys.path.append(os.path.join('..'))
+
 from crawler.gwanbo import parsedriver as GwanboDriver
 from crawler.jsonencoder import JsonEncoder
 from s3client import client as S3Client
@@ -17,7 +22,6 @@ from dateutil.parser import parse
 
 import datetime
 import json
-import os
 
 
 class Application:
