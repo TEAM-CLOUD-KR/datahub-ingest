@@ -11,7 +11,7 @@
 import os
 import sys
 
-sys.path.append(os.path.join('..'))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from crawler.gwanbo import parsedriver as GwanboDriver
 from crawler.jsonencoder import JsonEncoder
