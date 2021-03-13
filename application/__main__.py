@@ -68,20 +68,23 @@ if __name__ == '__main__':
     app = Application(GwanboDriver.ParseDriver())
 
     # start_date = datetime.date(2021, 1, 1)  # first: 20010102
-    start_date = datetime.date(2001, 1, 2)
-    end_date = datetime.date(2021, 3, 12)
-    date_gap = end_date - start_date
+    # end_date = datetime.date(2021, 3, 12)
+    # date_gap = end_date - start_date
 
-    dates = [str(start_date + datetime.timedelta(x)).replace('-', '')
-             for x in range(0, date_gap.days + 1)]
+    # dates = [str(start_date + datetime.timedelta(x)).replace('-', '')
+    #          for x in range(0, date_gap.days + 1)]
 
-    now = datetime.datetime.today()
-    dates = [str(now.strftime('%Y%m%d'))]
-
-    processing_unit = 1
+    # now = datetime.datetime.today()
+    # dates = [str(now.strftime('%Y%m%d'))]
+    
+    """
+    processing_unit = 2
     pool = Pool(processes=processing_unit)
 
     gwanbo_list = pool.map(app.parser.get_list_by_date, dates)
+    """
+
+    gwanbo_list = app.parser.get_list_by_date(datetime.datetime.today().strftime('%Y%m%d'))    
 
     json_directory = os.path.join('data', app.parser.agent)
     if not (os.path.isdir(json_directory)):
@@ -96,7 +99,8 @@ if __name__ == '__main__':
         for gwanbo in gwanbo_item:
             download_list.append(gwanbo)
 
-    result = pool.map(app.download_and_upload_gwanbo, download_list)
+    #result = pool.map(app.download_and_upload_gwanbo, download_list)
+    result = app.download_and_upload_gwanbo(download_list[0])
     print('====================')
 
     # INSERT INTO RDS . . .
