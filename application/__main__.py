@@ -29,7 +29,7 @@ class Application:
         config = None
         config_file = 'datahub-ingest.json'
         windows_dir = os.path.join('c:\\', 'repository', '_secrets', config_file)
-        linux_dir = os.path.join('home', 'datahub', '_secrets', config_file)
+        linux_dir = os.path.join('/home', 'datahub', '_secrets', config_file)
 
         if os.path.exists(windows_dir):
             with open(windows_dir, 'r') as f:
