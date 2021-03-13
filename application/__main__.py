@@ -76,7 +76,7 @@ if __name__ == '__main__':
 
     # now = datetime.datetime.today()
     # dates = [str(now.strftime('%Y%m%d'))]
-    
+
     """
     processing_unit = 2
     pool = Pool(processes=processing_unit)
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     gwanbo_list = pool.map(app.parser.get_list_by_date, dates)
     """
 
-    gwanbo_list = app.parser.get_list_by_date(datetime.datetime.today().strftime('%Y%m%d'))    
+    gwanbo_list = app.parser.get_list_by_date(datetime.datetime.today().strftime('%Y%m%d'))
 
     json_directory = os.path.join('data', app.parser.agent)
     if not (os.path.isdir(json_directory)):
@@ -99,8 +99,9 @@ if __name__ == '__main__':
         for gwanbo in gwanbo_item:
             download_list.append(gwanbo)
 
-    #result = pool.map(app.download_and_upload_gwanbo, download_list)
-    result = app.download_and_upload_gwanbo(download_list[0])
+    # result = pool.map(app.download_and_upload_gwanbo, download_list)
+    for download_item in download_list:
+        app.download_and_upload_gwanbo(download_item)
     print('====================')
 
     # INSERT INTO RDS . . .
