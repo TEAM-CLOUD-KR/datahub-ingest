@@ -29,7 +29,7 @@ class Application:
         config = None
         config_file = 'datahub-ingest.json'
         windows_dir = os.path.join('c:\\', 'repository', '_secrets', config_file)
-        linux_dir = os.path.join('/home', 'datahub', '_secrets', config_file)
+        linux_dir = os.path.join('/', 'home', 'datahub', '_secrets', config_file)
 
         if os.path.exists(windows_dir):
             with open(windows_dir, 'r') as f:
@@ -95,9 +95,8 @@ if __name__ == '__main__':
         json.dump(gwanbo_list, fp=json_file, ensure_ascii=False, cls=JsonEncoder)
 
     download_list = list()
-    for gwanbo_item in gwanbo_list:
-        for gwanbo in gwanbo_item:
-            download_list.append(gwanbo)
+    for gwanbo in gwanbo_list:
+        download_list.append(gwanbo)
 
     # result = pool.map(app.download_and_upload_gwanbo, download_list)
     for download_item in download_list:
