@@ -53,7 +53,7 @@ class Application:
         self.parser = parser
 
     def download_and_upload_gwanbo_to_s3(self, gwanbo: GwanboDriver.GwanboDict):
-        dt = parse(gwanbo.publish["created_at"])
+        dt = parse(gwanbo.publish["createdAt"])
         directory = os.path.join('data', self.parser.agent, str(dt.year), str(dt.month), str(dt.day))
 
         try:
@@ -73,15 +73,16 @@ class Application:
         adapter = HTTPAdapter(max_retries=retry)
         session.mount('http://', adapter)
         session.mount('https://', adapter)
-        url = 'https://localhost:8443/core/gwanbo'
+        url = 'https://dataportal.kr/core/gwanbo'
         header = {
-
+            "accept": "*/*",
+            "Content-Type": "application/json"
         }
-
+        print(gwanbo)
         response = session.post(
             url,
             headers=header,
-            params=json.loads(gwanbo)
+            params=str(gwanbo)
         )
 
         return response.text

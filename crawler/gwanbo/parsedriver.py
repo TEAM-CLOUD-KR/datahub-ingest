@@ -45,7 +45,7 @@ class GwanboDict:
         self.publish = {
             'id': publish_id.replace('0000000000000000', ''),
             'title': self.normalize(title),
-            'created_at': self.normalize(created_at),
+            'createdAt': self.normalize(created_at),
             'sequence': sequence,
             'author': self.normalize(author)
         }
@@ -54,9 +54,9 @@ class GwanboDict:
             'id': category['id'].replace('0000000000000000', '')
         }
 
-        dt = parse(self.publish["created_at"])
+        dt = parse(self.publish["createdAt"])
         _cdn_prefix = f'https://cdn.dataportal.kr/data/{agent}/{dt.year}/{dt.month}/{dt.day}/'
-        self.binary = f'{_cdn_prefix}{self.id}.pdf'
+        self.binaryFile = f'{_cdn_prefix}{self.id}.pdf'
 
     def __str__(self):
         return json.dumps(vars(self), ensure_ascii=False)
@@ -320,7 +320,7 @@ class ParseDriver:
               f'?contentId=0000000000000000{gwanbo.publish["id"]}:0000000000000000{gwanbo.id}:N:&reqType=docData'
         response = session.get(uri)
 
-        print(f'download ==> {gwanbo.publish["created_at"]}/{gwanbo.category["name"]}/{gwanbo.publish["title"]}')
+        print(f'download ==> {gwanbo.publish["createdAt"]}/{gwanbo.category["name"]}/{gwanbo.publish["title"]}')
         try:
             if not (os.path.isdir(destination)):
                 os.makedirs(destination)
