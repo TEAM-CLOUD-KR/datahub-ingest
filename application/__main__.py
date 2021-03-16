@@ -11,6 +11,10 @@
 import os
 import sys
 
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3 import Retry
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from crawler.gwanbo import parsedriver as GwanboDriver
@@ -48,7 +52,7 @@ class Application:
 
         self.parser = parser
 
-    def download_and_upload_gwanbo(self, gwanbo: GwanboDriver.GwanboDict):
+    def download_and_upload_gwanbo_to_s3(self, gwanbo: GwanboDriver.GwanboDict):
         dt = parse(gwanbo.publish["created_at"])
         directory = os.path.join('data', self.parser.agent, str(dt.year), str(dt.month), str(dt.day))
 
@@ -62,6 +66,25 @@ class Application:
             os.remove(source_file)
         except Exception as e:
             print(e)
+
+    def sync_mariadb(self, gwanbo: GwanboDriver.GwanboDict):
+        session = requests.session()
+        retry = Retry(connect=3, backoff_factor=0.5)
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+        url = 'https://localhost:8443/core/gwanbo'
+        header = {
+
+        }
+
+        response = session.post(
+            url,
+            headers=header,
+            params=gwanbo
+        )
+
+        return response.text
 
 
 if __name__ == '__main__':
@@ -94,13 +117,11 @@ if __name__ == '__main__':
     with open(file, 'w', encoding='utf-8') as json_file:
         json.dump(gwanbo_list, fp=json_file, ensure_ascii=False, cls=JsonEncoder)
 
-    download_list = list()
-    for gwanbo in gwanbo_list:
-        download_list.append(gwanbo)
-
     # result = pool.map(app.download_and_upload_gwanbo, download_list)
-    for download_item in download_list:
-        app.download_and_upload_gwanbo(download_item)
+    for gwanbo in gwanbo_list:
+        app.download_and_upload_gwanbo_to_s3(gwanbo)
+        print(app.sync_mariadb(gwanbo))
+        
     print('====================')
 
     # INSERT INTO RDS . . .
