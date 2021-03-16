@@ -73,18 +73,17 @@ class Application:
         adapter = HTTPAdapter(max_retries=retry)
         session.mount('http://', adapter)
         session.mount('https://', adapter)
-        url = 'https://dataportal.kr/core/gwanbo'
+        url = 'https://www.dataportal.kr/core/gwanbo'
         header = {
-            "accept": "*/*",
-            "Content-Type": "application/json"
+            'Content-Type': 'application/json; charset=utf-8'
         }
         response = session.post(
             url,
             headers=header,
-            params=str(gwanbo)
+            data=str(gwanbo).encode('utf-8')
         )
 
-        return response.text
+        return response.json()
 
 
 if __name__ == '__main__':

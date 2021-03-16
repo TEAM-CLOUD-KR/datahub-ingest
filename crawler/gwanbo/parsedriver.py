@@ -20,6 +20,8 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from dateutil.parser import parse
 
+from crawler.jsonencoder import JsonEncoder
+
 
 class GwanboDict:
 
