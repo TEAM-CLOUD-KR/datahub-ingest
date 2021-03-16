@@ -81,7 +81,7 @@ class Application:
         response = session.post(
             url,
             headers=header,
-            params=gwanbo
+            params=json.loads(gwanbo)
         )
 
         return response.text
@@ -121,7 +121,7 @@ if __name__ == '__main__':
     for gwanbo in gwanbo_list:
         app.download_and_upload_gwanbo_to_s3(gwanbo)
         print(app.sync_mariadb(gwanbo))
-        
+
     print('====================')
 
     # INSERT INTO RDS . . .
