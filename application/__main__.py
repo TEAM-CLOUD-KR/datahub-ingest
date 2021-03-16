@@ -78,7 +78,6 @@ class Application:
             "accept": "*/*",
             "Content-Type": "application/json"
         }
-        print(gwanbo)
         response = session.post(
             url,
             headers=header,
