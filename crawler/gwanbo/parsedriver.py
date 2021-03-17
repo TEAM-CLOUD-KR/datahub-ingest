@@ -29,6 +29,10 @@ class GwanboDict:
         if not text:
             return ''
 
+        if '도로구역결정(변경' in text:
+            print(text)
+            exit()
+
         _text = text.strip()
         if _text[0] == '(' and _text[-1] == ')':
             _text = _text[1:-1]
