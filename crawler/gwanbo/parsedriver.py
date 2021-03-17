@@ -31,13 +31,13 @@ class GwanboDict:
 
         _text = text.strip()
         if _text[0] == '(' and _text[-1] == ')':
-            _text = _text.strip('()')
+            _text = _text[1:-1]
 
         if _text[0] == '(' and _text[-1] != ')':
-            _text = _text.lstrip('(')
+            _text = _text[1:]
 
         if _text[-1] == ')' and _text[0] != '(':
-            _text = _text.rstrip(')')
+            _text = _text[:-1]
 
         return _text.replace('\'', '\\\'')
 
