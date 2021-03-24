@@ -34,6 +34,7 @@ class Application:
         config_file = 'datahub-ingest.json'
         windows_dir = os.path.join('c:\\', 'repository', '_secrets', config_file)
         linux_dir = os.path.join('/', 'home', 'datahub', '_secrets', config_file)
+        mac_dir = os.path.join('/', 'Users', 'sun', 'repository', '_secrets', config_file)
 
         if os.path.exists(windows_dir):
             with open(windows_dir, 'r') as f:
@@ -41,6 +42,10 @@ class Application:
 
         if os.path.exists(linux_dir):
             with open(linux_dir, 'r') as f:
+                config = json.load(f)
+
+        if os.path.exists(mac_dir):
+            with open(mac_dir, 'r') as f:
                 config = json.load(f)
 
         if config is None:
@@ -69,7 +74,7 @@ class Application:
 
     def sync_mariadb(self, gwanbo: GwanboDriver.GwanboDict):
         session = requests.session()
-        retry = Retry(connect=3, backoff_factor=0.5)
+        retry = Retry(connect=5, backoff_factor=0.5)
         adapter = HTTPAdapter(max_retries=retry)
         session.mount('http://', adapter)
         session.mount('https://', adapter)
@@ -89,25 +94,20 @@ class Application:
 if __name__ == '__main__':
     app = Application(GwanboDriver.ParseDriver())
 
-    # start_date = datetime.date(2021, 1, 1)  # first: 20010102
-    # end_date = datetime.date(2021, 3, 12)
-    # date_gap = end_date - start_date
+    start_date = datetime.date(2003, 1, 1)  # first: 20010102
+    end_date = datetime.date(2004, 1, 1)
+    date_gap = end_date - start_date
 
-    # dates = [str(start_date + datetime.timedelta(x)).replace('-', '')
-    #          for x in range(0, date_gap.days + 1)]
+    dates = [str(start_date + datetime.timedelta(x)).replace('-', '')
+             for x in range(0, date_gap.days + 1)]
 
-    # now = datetime.datetime.today()
-    # dates = [str(now.strftime('%Y%m%d'))]
-
-    """
-    processing_unit = 2
+    processing_unit = 4
     pool = Pool(processes=processing_unit)
 
     gwanbo_list = pool.map(app.parser.get_list_by_date, dates)
-    """
 
-    gwanbo_list = app.parser.get_list_by_date(datetime.datetime.today().strftime('%Y%m%d'))
-    # gwanbo_list = app.parser.get_list_by_date('20210315')
+    # gwanbo_list = app.parser.get_list_by_date(datetime.datetime.today().strftime('%Y%m%d'))
+
     json_directory = os.path.join('data', app.parser.agent)
     if not (os.path.isdir(json_directory)):
         os.makedirs(json_directory)
@@ -117,9 +117,10 @@ if __name__ == '__main__':
         json.dump(gwanbo_list, fp=json_file, ensure_ascii=False, cls=JsonEncoder)
 
     # result = pool.map(app.download_and_upload_gwanbo, download_list)
-    for gwanbo in gwanbo_list:
-        app.download_and_upload_gwanbo_to_s3(gwanbo)
-        print(app.sync_mariadb(gwanbo))
+    for gwanbo_item in gwanbo_list:
+        for gwanbo in gwanbo_item:
+            # app.download_and_upload_gwanbo_to_s3(gwanbo)
+            print(app.sync_mariadb(gwanbo))
 
     print('====================')
 
