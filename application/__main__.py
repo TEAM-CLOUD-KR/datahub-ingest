@@ -101,10 +101,11 @@ if __name__ == '__main__':
     dates = [str(start_date + datetime.timedelta(x)).replace('-', '')
              for x in range(0, date_gap.days + 1)]
 
-    processing_unit = 4
-    pool = Pool(processes=processing_unit)
 
-    gwanbo_list = pool.map(app.parser.get_list_by_date, dates)
+    gwanbo_list = []
+
+    for _dt in dates:
+        gwanbo_list.append(app.parser.get_list_by_date(_dt))
 
     # gwanbo_list = app.parser.get_list_by_date(datetime.datetime.today().strftime('%Y%m%d'))
 
