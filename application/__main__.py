@@ -94,36 +94,6 @@ class Application:
 if __name__ == '__main__':
     app = Application(GwanboDriver.ParseDriver())
 
-    # start_date = datetime.date(2003, 1, 1)  # first: 20010102
-    # end_date = datetime.date(2004, 1, 1)
-    # date_gap = end_date - start_date
-    #
-    # dates = [str(start_date + datetime.timedelta(x)).replace('-', '')
-    #          for x in range(0, date_gap.days + 1)]
-    #
-    #
-    # gwanbo_list = []
-    #
-    # for _dt in dates:
-    #     gwanbo_list.append(app.parser.get_list_by_date(_dt))
-    #
-    #
-    # json_directory = os.path.join('data', app.parser.agent)
-    # if not (os.path.isdir(json_directory)):
-    #     os.makedirs(json_directory)
-    # file = os.path.join(json_directory, 'data.json')
-    #
-    # with open(file, 'w', encoding='utf-8') as json_file:
-    #     json.dump(gwanbo_list, fp=json_file, ensure_ascii=False, cls=JsonEncoder)
-    #
-    # # result = pool.map(app.download_and_upload_gwanbo, download_list)
-    # for gwanbo_item in gwanbo_list:
-    #     for gwanbo in gwanbo_item:
-    #         # app.download_and_upload_gwanbo_to_s3(gwanbo)
-    #         print(app.sync_mariadb(gwanbo))
-    #
-    # print('====================')
-
     gwanbo_list = app.parser.get_list_by_date(datetime.datetime.today().strftime('%Y%m%d'))
 
     json_directory = os.path.join('data', app.parser.agent)
