@@ -97,7 +97,7 @@ class ParseDriver:
                 for item in data['list']:
                     gwanbo_list.append(GwanboDict(
                         self.agent,
-                        item['stored_toc_seq'], item['keyword_ebook_no'], item['stored_toc_seq'],
+                        item['stored_toc_seq'], item['keyword_ebook_no'], item['search_key'].split('_')[1],
                         item['stored_field_subject'], item['keyword_field_regdate'], item['stored_organ_nm'],
                         item['stored_organ_code'], item['stored_category_name'], item['stored_category_seq'],
                         item['stored_laword_nm']

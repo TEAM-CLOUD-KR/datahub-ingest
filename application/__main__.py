@@ -96,7 +96,7 @@ if __name__ == '__main__':
 
     today = datetime.datetime.today().strftime('%Y%m%d')
 
-    gwanbo_list = app.parser.get_list_by_date('20010102', '20100101')
+    gwanbo_list = app.parser.get_list_by_date('20010102', '20010102')
     json_directory = os.path.join('data', app.parser.agent)
     if not (os.path.isdir(json_directory)):
         os.makedirs(json_directory)
