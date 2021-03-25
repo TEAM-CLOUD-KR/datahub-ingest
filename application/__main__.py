@@ -95,7 +95,8 @@ if __name__ == '__main__':
     app = Application(GwanboDriver.ParseDriver())
 
     gwanbo_list = app.parser.get_list_by_date(datetime.datetime.today().strftime('%Y%m%d'))
-
+    print(gwanbo_list)
+    exit()
     json_directory = os.path.join('data', app.parser.agent)
     if not (os.path.isdir(json_directory)):
         os.makedirs(json_directory)

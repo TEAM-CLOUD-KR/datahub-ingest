@@ -20,7 +20,7 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from dateutil.parser import parse
 
-from crawler.jsonencoder import JsonEncoder
+import urllib
 
 
 class GwanboDict:
@@ -273,24 +273,34 @@ class ParseDriver:
         adapter = HTTPAdapter(max_retries=retry)
         session.mount('http://', adapter)
         session.mount('https://', adapter)
-        url = 'https://gwanbo.mois.go.kr/user/ebook/ebookDetail.do'
+        url = 'https://gwanbo.go.kr/SearchRestApi.jsp'
         header = {
-
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:87.0) Gecko/20100101 Firefox/87.0',
+            'X-Requested-With': 'XMLHttpRequest'
         }
         request_body = {
-            'ebook_date': date,
-            'ebook_gubun': 'GZT001'
+            'mode': 'daily',
+            'index': 'gwanbo',
+            'query': f'keyword_field_regdate:[{date}+TO+{date}]+AND+unstored_field_keyword:(관보+AND+정호)+AND+keyword_category_order:(@@ORDER_NUM)',
+            'pQuery_tmp': '',
+            'pageNo': '1',
+            'listSize': '10000',
+            'sort': ''
         }
+
+        print(urllib.parse.urlencode(request_body))
 
         response = session.post(
             url,
             headers=header,
-            params=request_body
+            data=urllib.parse.urlencode(request_body)
         )
 
         html = response.text
         soup = BeautifulSoup(html, 'html.parser')
-
+        print(html)
+        exit()
         gwanbo_list = []
         current_category = ''
         for item in soup.select('.sb3_plt40 > *'):
