@@ -10,10 +10,8 @@
 """
 import os
 import requests
-import re
 import json
 
-from bs4 import BeautifulSoup
 from typing import *
 
 from requests.adapters import HTTPAdapter
@@ -24,47 +22,30 @@ import urllib
 
 
 class GwanboDict:
-
-    def normalize(self, text: str):
-        if not text:
-            return ''
-
-        _text = text.strip()
-        if _text[0] == '(' and _text[-1] == ')':
-            _text = _text[1:-1]
-
-        if _text[0] == '(' and _text[-1] != ')':
-            _text = _text[1:]
-
-        if _text[-1] == ')' and _text[0] != '(':
-            _text = _text[:-1]
-
-        if _text.count('(') > _text.count(')'):
-            _text = _text + ')'
-
-        if _text.count('(') < _text.count(')'):
-            _text = '(' + _text
-
-        return _text.replace('\'', '\\\'')
-
-    def __init__(self, agent: str, category: Dict[str, str], created_at: str, publish_id: str, toc_id: str,
-                 sequence: str, author: str, title: str):
-        self.id = toc_id.replace('0000000000000000', '')
+    def __init__(self, agent: str, seq: str, ebook_no: str, publish_seq: str, publish_subject: str,
+                 publish_regdate: str, organization_name: str, organization_code: str, category_name: str,
+                 category_seq: str, law_name: str):
+        self.seq = seq
+        self.ebook_no = ebook_no
         self.publish = {
-            'id': publish_id.replace('0000000000000000', ''),
-            'title': self.normalize(title),
-            'createdAt': self.normalize(created_at),
-            'sequence': sequence,
-            'author': self.normalize(author)
+            'seq': publish_seq,
+            'subject': publish_subject.strip(),
+            'regdate': publish_regdate
+        }
+        self.organization = {
+            'name': organization_name,
+            'code': organization_code
         }
         self.category = {
-            'name': category['name'].replace('0000000000000000', ''),
-            'id': category['id'].replace('0000000000000000', '')
+            'name': category_name,
+            'seq': category_seq
         }
 
-        dt = parse(self.publish["createdAt"])
+        self.law_name = law_name.strip()
+
+        dt = parse(self.publish["regdate"])
         _cdn_prefix = f'https://cdn.dataportal.kr/data/{agent}/{dt.year}/{dt.month}/{dt.day}/'
-        self.binaryFile = f'{_cdn_prefix}{self.id}.pdf'
+        self.binaryFile = f'{_cdn_prefix}{self.seq}.pdf'
 
     def __str__(self):
         return json.dumps(vars(self), ensure_ascii=False)
@@ -73,200 +54,9 @@ class GwanboDict:
 class ParseDriver:
     def __init__(self):
         self.agent = 'gwanbo'
-        self.regex_set = [
-            {
-                'valid': ['TITLE', 'AUTHOR'],
-                'regex': r'(?P<AUTHOR>.*(?=고시|공고|고고|규칙|공시|부령|령))?'
-                         r'(고시|공고|고고|규칙|공시|부령|령|)?제?'
-                         r'(?P<SEQUENCE>[\d-]+)호?\(?(?P<TITLE>.*)\)'
-            },
-            {
-                'valid': ['TITLE', 'AUTHOR'],
-                'regex': r'(?P<TITLE>.*)\((?P<AUTHOR>.*)\)',
-            }, {
-                'valid': ['TITLE'],
-                'regex': r'(?P<TITLE>.*)'
-            }
-        ]
-        """
-         # {
-            #     'valid': ['TITLE', 'AUTHOR'],
-            #     'regex': r'(?P<AUTHOR>.*(?=고시|공고|고고|공시|부령|제))?'
-            #              r'(고시|공고|고고|규칙|공시|부령)?(제)?'
-            #              r'(?P<SEQUENCE>.*(?=호))?호?\(?(?P<TITLE>.*)'
-            # },
-       
-        """
-        self.categories = {
-            '헌법': {
-                'id': '1316064941384000', 'regex': r'헌법 ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
-            },
-            '법률': {
-                'id': '1316064739911000', 'regex': r'(법률)? ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
-            },
-            '조약': {
-                'id': '1316064759392000', 'regex': r'(?P<AUTHOR>.*)조약 ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
-            },
-            '대통령령': {
-                'id': '1316064763503000', 'regex': r'(대통령)?령? ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
-            },
-            '총리령': {
-                'id': '1316064767682000', 'regex': r'총리(령|훈령)? ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
-            },
-            '부령': {
-                'id': '1316064775344000',
-                'regex': [
-                    r'(?P<AUTHOR>.*)부령? ?제? ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
-                    r'(?P<AUTHOR>.*)령 ?제 ?(?P<SEQUENCE>[\d-]+)호(?P<TITLE>.*)',
-                    r'법률 ?제?제? ?(?P<SEQUENCE>[\d-]+)호(?P<TITLE>.*)'
-                ]
-            },
-            '훈령': {
-                'id': '1510711052397000',
-                'regex': r'(?P<AUTHOR>.*)(훈령)? ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
-            },
-            '고시': {
-                'id': '1316064812423000',
-                'regex': [
-                    r'(?P<AUTHOR>.*)(고시|공고) ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
-                    r'(?P<AUTHOR>.*)(?P<TITLE>.*)'
-                ]
-            },
-            '공고': {
-                'id': '1316064941384000',
-                'regex': [
-                    r'(?P<AUTHOR>.*)?(고시|공고|고고) ?제?제? ?(?P<SEQUENCE>[가-힣\d-]+)호?(?P<TITLE>.*)',
-                    r'(?P<AUTHOR>.*)?제(?P<SEQUENCE>[농|\W\d-]+)호?(?P<TITLE>.*)'
-                ]
-            },
-            '국회': {
-                'id': '1316064771554000',
-                'regex': r'(?P<AUTHOR>.*)(규칙|공고) ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
-            },
-            '법원': {
-                'id': '1316064780807000', 'regex': [
-                    r'(?P<AUTHOR>.*) ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
-                    r'(?P<TITLE>.*)(?P<AUTHOR>[가-힣]+)'
-                ]
-            },
-            '헌법재판소': {
-                'id': '1316064801736000',
-                'regex': r'(헌법재판소)?(규칙|공시|공고|고시|공)? ?제?제? ?(?P<SEQUENCE>[\d-]+)?호?(?P<TITLE>.*)'
-            },
-            '선거관리위원회': {
-                'id': '1316644783234000',
-                'regex': [
-                    r'중앙선거관리위원회(규칙|공고|고시)? ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
-                    r'중앙선거관리위원회(?P<AUTHOR>[가-힣]+)(규칙|공고) ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
-                    r'(?P<AUTHOR>.*)선거관리위(윈|원)회(규칙|공고|고시) ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)',
-                    r'(?P<AUTHOR>.*)(공고|고시) ?제?제? ?(?P<SEQUENCE>[\d-]+)호(?P<TITLE>.*)'
-                ]
-            },
-            '감사원': {
-                'id': '1316064936481000', 'regex': r'감사원(규칙|공고) ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
-            },
-            '국가인권위원회': {
-                'id': '1321519597927000',
-                'regex': r'국가인권위원회(규칙|공고) ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
-            },
-            '지방자치단체': {
-                'id': '1316064818185000',
-                'regex': r'(?P<AUTHOR>.*)?(공고|고시)? ?제?제? ?(?P<SEQUENCE>[\d-]+)호?(?P<TITLE>.*)'
-            },
-            '인사': {
-                'id': '1316064854672000', 'regex': [
-                    r'(?P<TITLE>.*)(?P<AUTHOR>[가-힣]+)',
-                    r'(?P<TITLE>.*)'
-                ]
-            },
-            '상훈': {
-                'id': '1327535627196000', 'regex': [
-                    r'(?P<TITLE>.*)\((?P<AUTHOR>.*)\)',
-                    r'(?P<TITLE>서훈)(?P<AUTHOR>.*)'
-                ]
-            },
-            '기타': {
-                'id': '1316064859031000',
-                'regex': [
-                    r'(?P<AUTHOR>.*)공고 ?제?제? ?(?P<SEQUENCE>[\d-]+)호(?P<TITLE>.*)',
-                    r'(?P<TITLE>.*)(?P<AUTHOR>[가-힣]+)',
-                    r'(?P<TITLE>.*)'
-                ]
-            },
-            '대통령지시사항': {
-                'id': '1615189864687000', 'regex': [
-                    r'(대통령)?지시사항(?P<TITLE>.*)',
-                    r'(?P<TITLE>.*)'
-                ]
-            }
-        }
 
-    def get_gwanbo_details(self, item):
-        item_details = None
-        for target in self.regex_set:
-            try:
-                item_details = re.compile(target['regex']).search(item.group('FULL_TITLE'))
-            except Exception as e:
-                print(e)
-                # print(e)
-                # print(item.group('FULL_TITLE'))
-                # print(target['regex'])
-
-            _res = list()
-            for v_item in target['valid']:
-                try:
-                    item_details.group(v_item)
-                    _res.append(True)
-                    if len(target['valid']) == _res.count(True):
-                        return item_details
-                except Exception as e:
-                    pass
-
-        return item_details
-
-    def parse_gwanbo_title(self, title: str) -> Dict[str, str]:
-        regex = re.compile(
-            r"javascript:fncViewToc\('(?P<PUBLISH_ID>[\d]*)', '(?P<TOC_ID>[\d]*)', '(?P<FULL_TITLE>.*)'\)")
-
-        item = regex.search(title)
-
-        item_details = self.get_gwanbo_details(item)
-
-        item_publish_id = item.group('PUBLISH_ID')
-        item_toc_id = item.group('TOC_ID')
-
-        item_author = ''
-        item_sequence = ''
-        item_title = ''
-
-        if item_details is None:
-            print('item_details is None' + '::' + item.group('FULL_TITLE'))
-        else:
-            try:
-                item_title = item_details.group('TITLE')
-            except IndexError as e:
-                pass
-
-            try:
-                item_sequence = item_details.group('SEQUENCE')
-            except IndexError as e:
-                pass
-
-            try:
-                item_author = item_details.group('AUTHOR')
-            except IndexError as e:
-                pass
-
-        return {
-            'publish_id': item_publish_id,
-            'toc_id': item_toc_id,
-            'sequence': item_sequence,
-            'author': item_author,
-            'title': item_title
-        }
-
-    def get_list_by_date(self, date: str) -> List[GwanboDict]:
-        print('=====', date, '=====')
+    def get_list_by_date(self, start_date: str, end_date: str) -> List[GwanboDict]:
+        print(f'===== {start_date} TO {end_date} =====')
 
         session = requests.session()
         retry = Retry(connect=3, backoff_factor=0.5)
@@ -282,49 +72,36 @@ class ParseDriver:
         request_body = {
             'mode': 'daily',
             'index': 'gwanbo',
-            'query': f'keyword_field_regdate:[{date}+TO+{date}]+AND+unstored_field_keyword:(관보+AND+정호)+AND+keyword_category_order:(@@ORDER_NUM)',
+            'query': f'keyword_field_regdate:[{start_date}+TO+{end_date}]+AND+unstored_field_keyword:(관보)+AND+keyword_category_order:(@@ORDER_NUM)',
             'pQuery_tmp': '',
             'pageNo': '1',
             'listSize': '10000',
             'sort': ''
         }
-
-        print(urllib.parse.urlencode(request_body))
+        request_payload = ''
+        for k, v in request_body.items():
+            request_payload += f'{k}={urllib.parse.quote(v).replace("%2B", "+")}&'
 
         response = session.post(
             url,
             headers=header,
-            data=urllib.parse.urlencode(request_body)
+            data=request_payload
         )
 
-        html = response.text
-        soup = BeautifulSoup(html, 'html.parser')
-        print(html)
-        exit()
-        gwanbo_list = []
-        current_category = ''
-        for item in soup.select('.sb3_plt40 > *'):
-            if item.name == 'p':
-                current_category = item.find('strong').text
-                if '훈령' in current_category:
-                    current_category = '훈령'
-            elif item.name == 'ul':
-                href = item.find('a')['href']
+        gwanbo_list = list()
 
-                gwanbo = self.parse_gwanbo_title(href)
-                try:
-                    gwanbo_list.append(
-                        GwanboDict(
-                            self.agent,
-                            {'name': current_category, 'id': self.categories[current_category]['id']},
-                            date, gwanbo['publish_id'], gwanbo['toc_id'],
-                            gwanbo['sequence'], gwanbo['author'], gwanbo['title']
-                        )
-                    )
-                except Exception as e:
-                    print('href error:', href)
-                    print(gwanbo)
+        dataset = json.loads(response.text)['data']
 
+        for data in dataset:
+            if data['count'] > 0:
+                for item in data['list']:
+                    gwanbo_list.append(GwanboDict(
+                        self.agent,
+                        item['stored_toc_seq'], item['keyword_ebook_no'], item['stored_toc_seq'],
+                        item['stored_field_subject'], item['keyword_field_regdate'], item['stored_organ_nm'],
+                        item['stored_organ_code'], item['stored_category_name'], item['stored_category_seq'],
+                        item['stored_laword_nm']
+                    ))
         return gwanbo_list
 
     def download_single_gwanbo(self, gwanbo: GwanboDict, destination: str) -> bool:
@@ -334,15 +111,15 @@ class ParseDriver:
         session.mount('http://', adapter)
         session.mount('https://', adapter)
 
-        uri = 'https://gwanbo.mois.go.kr/ezpdfwebviewer/viewer.jsp' \
-              f'?contentId=0000000000000000{gwanbo.publish["id"]}:0000000000000000{gwanbo.id}:N:&reqType=docData'
+        uri = 'https://gwanbo.go.kr/ezpdfwebviewer/viewer.jsp?optNoUi=true&optLang=ko&' \
+              f'contentId={gwanbo.publish["seq"]}":{gwanbo.seq}:N:&reqType=docData&reqSubType=dn'
         response = session.get(uri)
 
-        print(f'download ==> {gwanbo.publish["createdAt"]}/{gwanbo.category["name"]}/{gwanbo.publish["title"]}')
+        print(f'download ==> {gwanbo.publish["regdate"]}/{gwanbo.category["name"]}/{gwanbo.publish["subject"]}')
         try:
             if not (os.path.isdir(destination)):
                 os.makedirs(destination)
-            file = os.path.join(destination, f'{gwanbo.id}.pdf')
+            file = os.path.join(destination, f'{gwanbo.seq}.pdf')
             open(file, 'wb').write(response.content)
         except IOError as e:
             print('IOError', e)

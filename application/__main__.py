@@ -58,13 +58,13 @@ class Application:
         self.parser = parser
 
     def download_and_upload_gwanbo_to_s3(self, gwanbo: GwanboDriver.GwanboDict):
-        dt = parse(gwanbo.publish["createdAt"])
+        dt = parse(gwanbo.publish["regdate"])
         directory = os.path.join('data', self.parser.agent, str(dt.year), str(dt.month), str(dt.day))
 
         try:
             self.parser.download_single_gwanbo(gwanbo, directory)
 
-            source_file = os.path.join(directory, gwanbo.id + '.pdf')
+            source_file = os.path.join(directory, gwanbo.seq + '.pdf')
             client = S3Client.Client(self.aws_access_key_id, self.aws_secret_access_key)
             res = client.upload_file('data-portal-cdn', source_file, source_file.replace('\\', '/'))
 
@@ -94,9 +94,9 @@ class Application:
 if __name__ == '__main__':
     app = Application(GwanboDriver.ParseDriver())
 
-    gwanbo_list = app.parser.get_list_by_date(datetime.datetime.today().strftime('%Y%m%d'))
-    print(gwanbo_list)
-    exit()
+    today = datetime.datetime.today().strftime('%Y%m%d')
+
+    gwanbo_list = app.parser.get_list_by_date('20010102', '20100101')
     json_directory = os.path.join('data', app.parser.agent)
     if not (os.path.isdir(json_directory)):
         os.makedirs(json_directory)
@@ -105,8 +105,8 @@ if __name__ == '__main__':
     with open(file, 'w', encoding='utf-8') as json_file:
         json.dump(gwanbo_list, fp=json_file, ensure_ascii=False, cls=JsonEncoder)
 
-    for gwanbo_item in gwanbo_list:
-        app.download_and_upload_gwanbo_to_s3(gwanbo_item)
-        print(app.sync_mariadb(gwanbo_item))
+    for gwanbo in gwanbo_list:
+        app.download_and_upload_gwanbo_to_s3(gwanbo)
+        print(app.sync_mariadb(gwanbo))
 
     print('====================')
