@@ -89,8 +89,7 @@ class Application:
             headers=header,
             data=str(gwanbo).encode('utf-8')
         )
-
-        return response.json()
+        print(response.json())
 
 
 if __name__ == '__main__':
@@ -98,8 +97,7 @@ if __name__ == '__main__':
 
     pool = Pool(processes=10)
 
-    today = datetime.datetime.today().strftime('%Y%m%d')
-    gwanbo_list = app.parser.get_list_by_date('20010102', today)
+    gwanbo_list = app.parser.get_list_by_date('20010102', '20010131')
 
     json_directory = os.path.join('data', app.parser.agent)
     if not (os.path.isdir(json_directory)):
@@ -109,8 +107,9 @@ if __name__ == '__main__':
     with open(file, 'w', encoding='utf-8') as json_file:
         json.dump(gwanbo_list, fp=json_file, ensure_ascii=False, cls=JsonEncoder)
 
-    pool.map(app.download_and_upload_gwanbo_to_s3, gwanbo_list)
-    pool.map(app.sync_mariadb, gwanbo_list)
+    for gwanbo in gwanbo_list:
+        pool.map(app.download_and_upload_gwanbo_to_s3, gwanbo)
+        pool.map(app.sync_mariadb, gwanbo)
 
     pool.close()
     pool.join()

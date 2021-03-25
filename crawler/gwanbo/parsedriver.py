@@ -87,11 +87,13 @@ class ParseDriver:
             headers=header,
             data=request_payload
         )
+        print(response.text)
+        try:
+            dataset = json.loads(response.text)['data']
+        except Exception as e:
+            return list()
 
         gwanbo_list = list()
-
-        dataset = json.loads(response.text)['data']
-
         for data in dataset:
             if data['count'] > 0:
                 for item in data['list']:
