@@ -23,6 +23,7 @@ from s3client import client as S3Client
 
 from multiprocessing import Pool
 from dateutil.parser import parse
+from functools import partial
 
 import datetime
 import json
@@ -73,6 +74,7 @@ class Application:
             print(e)
 
     def sync_mariadb(self, gwanbo: GwanboDriver.GwanboDict):
+        print(f'sync {gwanbo.publish["subject"]}')
         session = requests.session()
         retry = Retry(connect=5, backoff_factor=0.5)
         adapter = HTTPAdapter(max_retries=retry)
@@ -94,9 +96,11 @@ class Application:
 if __name__ == '__main__':
     app = Application(GwanboDriver.ParseDriver())
 
-    today = datetime.datetime.today().strftime('%Y%m%d')
+    pool = Pool(processes=10)
 
-    gwanbo_list = app.parser.get_list_by_date(today, today)
+    today = datetime.datetime.today().strftime('%Y%m%d')
+    gwanbo_list = app.parser.get_list_by_date('20010102', today)
+
     json_directory = os.path.join('data', app.parser.agent)
     if not (os.path.isdir(json_directory)):
         os.makedirs(json_directory)
@@ -105,8 +109,9 @@ if __name__ == '__main__':
     with open(file, 'w', encoding='utf-8') as json_file:
         json.dump(gwanbo_list, fp=json_file, ensure_ascii=False, cls=JsonEncoder)
 
-    for gwanbo in gwanbo_list:
-        app.download_and_upload_gwanbo_to_s3(gwanbo)
-        print(app.sync_mariadb(gwanbo))
+    pool.map(app.download_and_upload_gwanbo_to_s3, gwanbo_list)
+    pool.map(app.sync_mariadb, gwanbo_list)
 
+    pool.close()
+    pool.join()
     print('====================')
