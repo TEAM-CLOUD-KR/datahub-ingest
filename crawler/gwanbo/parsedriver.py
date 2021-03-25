@@ -26,7 +26,7 @@ class GwanboDict:
                  publish_regdate: str, organization_name: str, organization_code: str, category_name: str,
                  category_seq: str, law_name: str):
         self.seq = seq
-        self.ebook_no = ebook_no
+        self.ebookNo = ebook_no
         self.publish = {
             'seq': publish_seq,
             'subject': publish_subject.strip(),
@@ -41,7 +41,7 @@ class GwanboDict:
             'seq': category_seq
         }
 
-        self.law_name = law_name.strip()
+        self.lawName = law_name.strip()
 
         dt = parse(self.publish["regdate"])
         _cdn_prefix = f'https://cdn.dataportal.kr/data/{agent}/{dt.year}/{dt.month}/{dt.day}/'
