@@ -87,7 +87,6 @@ class ParseDriver:
             headers=header,
             data=request_payload
         )
-        print(response.text)
         try:
             dataset = json.loads(response.text)['data']
         except Exception as e:

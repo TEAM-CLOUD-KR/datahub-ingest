@@ -95,9 +95,21 @@ class Application:
 if __name__ == '__main__':
     app = Application(GwanboDriver.ParseDriver())
 
-    pool = Pool(processes=10)
+    # pool = Pool(processes=10)
 
-    gwanbo_list = app.parser.get_list_by_date('20010102', '20010131')
+    start_date = datetime.date(2001, 1, 2)
+    end_date = datetime.date(2021, 3, 26)
+    date_gap = end_date - start_date
+    date_per = 30
+
+    dates = [str(start_date + datetime.timedelta(x)).replace('-', '')
+             for x in range(0, date_gap.days + 1, date_per)]
+
+    gwanbo_list = list()
+    for _dt in dates:
+        gwanbo_list.append(
+            app.parser.get_list_by_date(_dt, str(parse(_dt).date() + datetime.timedelta(date_per)).replace('-', ''))
+        )
 
     json_directory = os.path.join('data', app.parser.agent)
     if not (os.path.isdir(json_directory)):
@@ -108,9 +120,11 @@ if __name__ == '__main__':
         json.dump(gwanbo_list, fp=json_file, ensure_ascii=False, cls=JsonEncoder)
 
     for gwanbo in gwanbo_list:
-        pool.map(app.download_and_upload_gwanbo_to_s3, gwanbo)
-        pool.map(app.sync_mariadb, gwanbo)
+        # pool.map(app.download_and_upload_gwanbo_to_s3, gwanbo)
+        # pool.map(app.sync_mariadb, gwanbo)
+        app.download_and_upload_gwanbo_to_s3(gwanbo)
+        app.sync_mariadb(gwanbo)
 
-    pool.close()
-    pool.join()
+    # pool.close()
+    # pool.join()
     print('====================')
