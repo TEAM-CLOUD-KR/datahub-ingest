@@ -95,8 +95,12 @@ if __name__ == '__main__':
     app = Application(GwanboDriver.ParseDriver())
 
     today = datetime.datetime.today().strftime('%Y%m%d')
+    yesterday = (datetime.datetime.today() - datetime.timedelta(1)).strftime('%Y%m%d')
 
-    gwanbo_list = app.parser.get_list_by_date(today, today)
+    gwanbo_list = list()
+    gwanbo_list.append(app.parser.get_list_by_date(yesterday, yesterday))
+    gwanbo_list.append(app.parser.get_list_by_date(today, today))
+
     json_directory = os.path.join('data', app.parser.agent)
     if not (os.path.isdir(json_directory)):
         os.makedirs(json_directory)
@@ -105,8 +109,9 @@ if __name__ == '__main__':
     with open(file, 'w', encoding='utf-8') as json_file:
         json.dump(gwanbo_list, fp=json_file, ensure_ascii=False, cls=JsonEncoder)
 
-    for gwanbo in gwanbo_list:
-        app.download_and_upload_gwanbo_to_s3(gwanbo)
-        print(app.sync_mariadb(gwanbo))
+    for gwanbo_item in gwanbo_list:
+        for gwanbo in gwanbo_item:
+            app.download_and_upload_gwanbo_to_s3(gwanbo)
+            print(app.sync_mariadb(gwanbo))
 
     print('====================')

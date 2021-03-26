@@ -30,7 +30,7 @@ class GwanboDict:
         self.publish = {
             'seq': publish_seq,
             'subject': publish_subject.strip(),
-            'regdate': publish_regdate
+            'regdate': publish_regdate.replace('20107280', '20100728')
         }
         self.organization = {
             'name': organization_name,
