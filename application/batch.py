@@ -80,7 +80,7 @@ class Application:
         adapter = HTTPAdapter(max_retries=retry)
         session.mount('http://', adapter)
         session.mount('https://', adapter)
-        url = 'https://www.dataportal.kr/core/gwanbo'
+        url = 'https://api.dataportal.kr/core/gwanbo'
         header = {
             'Content-Type': 'application/json; charset=utf-8'
         }
