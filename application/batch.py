@@ -60,7 +60,7 @@ class Application:
 
     def download_and_upload_gwanbo_to_s3(self, gwanbo: GwanboDriver.GwanboDict):
         dt = parse(gwanbo.publish["regdate"])
-        directory = os.path.join('data', self.parser.agent, str(dt.year), str(dt.month).zfill(2), str(dt.day).zfill(2))
+        directory = os.path.join('data', self.parser.agent, str(dt.year), str(dt.month), str(dt.day))
 
         try:
             self.parser.download_single_gwanbo(gwanbo, directory)
