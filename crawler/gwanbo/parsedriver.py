@@ -44,7 +44,7 @@ class GwanboDict:
         self.lawName = law_name.strip()
 
         dt = parse(self.publish["regdate"])
-        _cdn_prefix = f'https://cdn.dataportal.kr/data/{agent}/{dt.year}/{dt.month}/{dt.day}/'
+        _cdn_prefix = f'https://cdn.dataportal.kr/data/{agent}/{dt.year}/{str(dt.month).zfill(2)}/{str(dt.day).zfill(2)}/'
         self.binaryFile = f'{_cdn_prefix}{self.seq}.pdf'
 
     def __str__(self):
